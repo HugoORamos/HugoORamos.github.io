@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cenário Ruim - Agendamento em Frame de Celular</title>
+  <style>
+    /* Reset simples */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { display: flex; justify-content: center; align-items: center; height: 100vh; background: #ddd; font-family: Arial, sans-serif; }
+
+    /* Frame de celular */
+    .phone-frame {
+      width: 375px;
+      height: 667px;
+      border: 16px solid #333;
+      border-top-width: 60px;
+      border-bottom-width: 60px;
+      border-radius: 36px;
+      background: #fff;
+      overflow: hidden;
+    }
+    .phone-screen {
+      width: 100%; height: 100%; overflow-y: auto;
+    }
+
+    /* Navegação confusa */
+    nav { background: #fff; padding: 10px; display: flex; justify-content: space-around; border-bottom: 1px solid #ddd; }
+    nav i { font-size: 24px; cursor: pointer; }
+    nav i[title] { position: relative; }
+    nav i[title]:hover::after { content: attr(title); position: absolute; bottom: -20px; background: #333; color: #fff; padding: 2px 5px; font-size: 10px; border-radius: 3px; }
+
+    /* Conteúdo */
+    .container { padding: 10px; }
+    .section { margin-bottom: 30px; }
+    .section h2 { font-size: 16px; margin-bottom: 8px; }
+    .section p { font-size: 12px; color: #555; margin-bottom: 10px; }
+
+    /* Formulário de cadastro */
+    .registration-form label { display: block; margin-bottom: 6px; font-size: 14px; }
+    .registration-form input, .registration-form select { width: calc(100% - 12px); padding: 4px; margin-top: 2px; }
+
+    /* Plano de Saúde */
+    .plan-section input { width: calc(100% - 12px); padding: 6px; margin-bottom: 6px; }
+    .plan-section button { padding: 8px 12px; background: #007bff; color: #fff; border: none; cursor: pointer; }
+
+    /* Seleção de Médico e Especialidade */
+    .doctor-list, .specialty-list { border: 1px solid #ccc; padding: 8px; }
+    .doctor-list label, .specialty-list label { display: block; margin-bottom: 6px; cursor: pointer; font-size: 14px; }
+    .doctor-list input, .specialty-list input { margin-right: 6px; }
+
+    /* Horários confusos */
+    .scroll-container { border: 1px solid #ccc; padding: 5px; max-height: 200px; overflow-y: auto; }
+    .timeslot-list { list-style: none; }
+    .timeslot-list li { padding: 6px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; cursor: pointer; font-size: 13px; }
+    .timeslot-list li.selected { background: #eee; }
+    .available { color: #28a745; font-weight: bold; }
+    .disabled { color: #dc3545; font-weight: bold; }
+
+    /* Botões finais */
+    .btn { padding: 8px 12px; border: none; cursor: pointer; font-size: 14px; margin-right: 6px; }
+    .btn-restart { background: #28a745; color: #fff; }
+    .btn-confirm { background: #dc3545; color: #fff; }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <nav>
+        <i title="Agendar consulta / Histórico">📅</i>
+        <i title="Formulários Médicos">📝</i>
+        <i title="Prescrições">💊</i>
+        <i title="Configurações">⚙️</i>
+      </nav>
+      <div class="container">
+        <!-- 0. Cadastro do Paciente -->
+        <div id="registration-section" class="section">
+          <h2>Cadastro do Paciente</h2>
+          <p class="explanation">Preencha seus dados pessoais.</p>
+          <div class="registration-form">
+            <label>Nome:<input type="text" id="first-name" placeholder="Digite seu nome"></label>
+            <label>Sobrenome:<input type="text" id="last-name" placeholder="Digite seu sobrenome"></label>
+            <label>Email:<input type="email" id="email" placeholder="exemplo@dominio.com"></label>
+            <label>Telefone:<input type="tel" id="phone" placeholder="(00) 00000-0000"></label>
+            <label>CPF:<input type="text" id="cpf" placeholder="000.000.000-00"></label>
+            <label>Endereço:<input type="text" id="address" placeholder="Rua, nº, bairro"></label>
+            <label>Cidade:<input type="text" id="city" placeholder="Cidade"></label>
+            <label>Estado:<input type="text" id="state" placeholder="Estado"></label>
+            <label>CEP:<input type="text" id="cep" placeholder="00000-000"></label>
+            <label>Data de Nascimento:<input type="date" id="dob"></label>
+            <label>Gênero:
+              <select id="gender">
+                <option value="">Selecione</option>
+                <option value="female">Feminino</option>
+                <option value="male">Masculino</option>
+                <option value="other">Outro</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <!-- 1. Seleção de Plano -->
+        <div id="plan-section" class="section plan-section">
+          <h2>Plano de Saúde</h2>
+          <p class="explanation">Digite o nome do seu plano de saúde.</p>
+          <input type="text" id="plan-input" placeholder="Digite o plano">
+          <button id="plan-confirm">Confirmar Plano</button>
+        </div>
+        <!-- 2. Seleção de Médico -->
+        <div class="doctor-list" id="doctor-list">
+            <!-- Médicos -->
+            <label><input type="radio" name="doctor" value="Dr. João Silva" data-specialty="Cardiologista"> Dr. João Silva</label>
+            <label><input type="radio" name="doctor" value="Dra. Maria Oliveira" data-specialty="Endocrinologista"> Dra. Maria Oliveira</label>
+            <label><input type="radio" name="doctor" value="Dr. Carlos Pereira" data-specialty="Dermatologista"> Dr. Carlos Pereira</label>
+            <label><input type="radio" name="doctor" value="Dra. Ana Costa" data-specialty="Neurologista"> Dra. Ana Costa</label>
+            <label><input type="radio" name="doctor" value="Dr. Pedro Almeida" data-specialty="Ortopedista"> Dr. Pedro Almeida</label>
+            <label><input type="radio" name="doctor" value="Dra. Luísa Fernandes" data-specialty="Pediatra"> Dra. Luísa Fernandes</label>
+            <label><input type="radio" name="doctor" value="Dr. Ricardo Sousa" data-specialty="Gastroenterologista"> Dr. Ricardo Sousa</label>
+            <label><input type="radio" name="doctor" value="Dra. Juliana Rocha" data-specialty="Psiquiatra"> Dra. Juliana Rocha</label>
+            <label><input type="radio" name="doctor" value="Dr. Felipe Santos" data-specialty="Urologista"> Dr. Felipe Santos</label>
+            <label><input type="radio" name="doctor" value="Dra. Camila Dias" data-specialty="Oftalmologista"> Dra. Camila Dias</label>
+            <label><input type="radio" name="doctor" value="Dr. Bruno Lima" data-specialty="Endocrinologista Pediátrico"> Dr. Bruno Lima</label>
+            <label><input type="radio" name="doctor" value="Dra. Vanessa Pires" data-specialty="Cirurgiã Plástica"> Dra. Vanessa Pires</label>
+            <label><input type="radio" name="doctor" value="Dr. Helena Borges" data-specialty="Oncologista"> Dr. Helena Borges</label>
+            <label><input type="radio" name="doctor" value="Dr. Lucas Martins" data-specialty="Pneumologista"> Dr. Lucas Martins</label>
+            <label><input type="radio" name="doctor" value="Dra. Gabriela Ramos" data-specialty="Psicóloga"> Dra. Gabriela Ramos</label>
+            <label><input type="radio" name="doctor" value="Dr. André Oliveira" data-specialty="Dentista"> Dr. André Oliveira</label>
+            <label><input type="radio" name="doctor" value="Dra. Beatriz Costa" data-specialty="Ginecologista"> Dra. Beatriz Costa</label>
+          </div>
+        </div>
+        <!-- 3. Seleção de Especialidade -->
+        <div id="specialty-section" class="section">
+          <h2>Selecione a Especialidade</h2>
+          <p class="explanation">Escolha a especialidade desejada.</p>
+          <div class="specialty-list" id="specialty-list">
+            <label><input type="radio" name="specialty" value="Cardiologista"> Cardiologista</label>
+            <label><input type="radio" name="specialty" value="Endocrinologista"> Endocrinologista</label>
+            <label><input type="radio" name="specialty" value="Dermatologista"> Dermatologista</label>
+            <label><input type="radio" name="specialty" value="Neurologista"> Neurologista</label>
+            <label><input type="radio" name="specialty" value="Ortopedista"> Ortopedista</label>
+            <label><input type="radio" name="specialty" value="Pediatra"> Pediatra</label>
+            <label><input type="radio" name="specialty" value="Gastroenterologista"> Gastroenterologista</label>
+            <label><input type="radio" name="specialty" value="Psiquiatra"> Psiquiatra</label>
+            <label><input type="radio" name="specialty" value="Urologista"> Urologista</label>
+            <label><input type="radio" name="specialty" value="Oftalmologista"> Oftalmologista</label>
+            <label><input type="radio" name="specialty" value="Endocrinologista Pediátrico"> Endocrinologista Pediátrico</label>
+            <label><input type="radio" name="specialty" value="Cirurgiã Plástica"> Cirurgiã Plástica</label>
+            <label><input type="radio" name="specialty" value="Oncologista"> Oncologista</label>
+            <label><input type="radio" name="specialty" value="Pneumologista"> Pneumologista</label>
+            <label><input type="radio" name="specialty" value="Psicóloga"> Psicóloga</label>
+            <label><input type="radio" name="specialty" value="Dentista"> Dentista</label>
+            <label><input type="radio" name="specialty" value="Ginecologista"> Ginecologista</label>
+          </div>
+        </div>
+        <!-- 4. Seleção de Data e Horário -->
+        <div id="date-section" class="section">
+          <h2>Escolha a Data e Horário</h2>
+          <p class="explanation">Selecione um dos horários abaixo.</p>
+          <div class="scroll-container">
+            <ul class="timeslot-list" id="timeslot-list"></ul>
+          </div>
+        </div>
+        <!-- 5. Confirmação e Final -->
+        <div id="confirmation-section" class="section">
+          <h2>Confirme seu Agendamento</h2>
+          <p class="explanation">Verifique tudo antes de confirmar.</p>
+          <div>
+            <strong>Plano:</strong> <span id="confirm-plan"></span><br>
+            <strong>Médico:</strong> <span id="confirm-doctor"></span><br>
+            <strong>Especialidade:</strong> <span id="confirm-specialty"></span><br>
+            <strong>Data e Horário:</strong> <span id="confirm-time"></span>
+          </div>
+          <textarea id="notes" rows="4" style="width:100%;" placeholder="Observações..."></textarea><br><br>
+          <button class="btn btn-restart" id="restart-btn">Recomeçar Agendamento</button>
+          <button class="btn btn-confirm" id="finish-btn">Confirmar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    let selectedPlan = '', selectedDoctor = '', selectedDoctorSpecialty = '', selectedSpecialty = '', selectedTime = '';
+    // Gera horários
+    document.addEventListener('DOMContentLoaded', () => {
+      const ul = document.getElementById('timeslot-list');
+      for (let day = 1; day <= 31; day++) {
+        const d = String(day).padStart(2, '0');
+        ['09:00', '14:00', '19:00'].forEach((time, idx) => {
+          const li = document.createElement('li');
+          li.setAttribute('data-time', `${d}/05/2025 - ${time}`);
+          const available = idx === 0 ? day % 2 === 1 : idx === 2 ? day % 3 === 0 : false;
+          li.innerHTML = `<span>${d}/05/2025 - ${time}</span><span class="${available ? 'available' : 'disabled'}">${available ? '✓' : 'X'}</span>`;
+          ul.appendChild(li);
+        });
+      }
+    });
+    // Plano
+    document.getElementById('plan-confirm').addEventListener('click', () => {
+      const input = document.getElementById('plan-input').value.trim();
+      selectedPlan = input;
+      document.getElementById('confirm-plan').textContent = input;
+      if (input.toLowerCase() !== 'unimed') {
+        alert('Não atendemos por esse plano');
+      }
+    });
+    // Eventos médicos, especialidade e horário
+    document.getElementById('doctor-list').addEventListener('change', e => {
+      selectedDoctor = e.target.value;
+      selectedDoctorSpecialty = e.target.getAttribute('data-specialty');
+      document.getElementById('confirm-doctor').textContent = selectedDoctor;
+    });
+    document.getElementById('specialty-list').addEventListener('change', e => {
+      selectedSpecialty = e.target.value;
+      document.getElementById('confirm-specialty').textContent = selectedSpecialty;
+    });
+    document.getElementById('timeslot-list').addEventListener('click', e => {
+      const li = e.target.closest('li'); if (!li) return;
+      if (li.querySelector('.disabled')) { alert('Horário indivizzoápavil navegout'); return; }
+      document.querySelectorAll('#timeslot-list li').forEach(item => item.classList.remove('selected'));
+      li.classList.add('selected');
+      selectedTime = li.getAttribute('data-time');
+      document.getElementById('confirm-time').textContent = selectedTime;
+    });
+    // Finalizar
+    document.getElementById('finish-btn').addEventListener('click', () => {
+      if (!selectedPlan) { alert('Digite o plano.'); return; }
+      if (selectedPlan.toLowerCase() !== 'unimed') return;
+      if (!selectedDoctor) { alert('Selecione um médico.'); return; }
+      if (!selectedSpecialty) { alert('Selecione uma especialidade.'); return; }
+      if (!selectedTime) { alert('Selecione um horário.'); return; }
+      if (selectedSpecialty !== selectedDoctorSpecialty) { alert(`Este médico não é ${selectedSpecialty}.`); return; }
+      alert('Agendamento confirmado com sucesso!');
+    });
+    // Reiniciar
+    document.getElementById('restart-btn').addEventListener('click', () => {
+      // Limpar cadastro completo
+      ['first-name','last-name','email','phone','cpf','address','city','state','cep','dob'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('gender').value = '';
+      // Limpar plano
+      document.getElementById('plan-input').value = '';
+      document.getElementById('confirm-plan').textContent = '';
+      // Limpar seleção médico e especialidade
+      document.querySelectorAll('input[name="doctor"]').forEach(i => i.checked = false);
+      document.querySelectorAll('input[name="specialty"]').forEach(i => i.checked = false);
+      document.getElementById('confirm-doctor').textContent = '';
+      document.getElementById('confirm-specialty').textContent = '';
+      // Limpar horário
+      document.querySelectorAll('#timeslot-list li').forEach(li => li.classList.remove('selected'));
+      document.getElementById('confirm-time').textContent = '';
+      // Resetar estado interno
+      selectedPlan = selectedDoctor = selectedDoctorSpecialty = selectedSpecialty = selectedTime = '';
+    });
+  </script>
+</body>
+</html>
