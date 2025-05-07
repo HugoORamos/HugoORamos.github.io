@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Redesign - Agendamento</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { display:flex; justify-content:center; align-items:center; height:100vh; background:#f0f2f5; font-family:Arial,sans-serif; }
+    .phone-frame { width:360px; height:640px; border:8px solid #bbb; border-radius:24px; background:#fff; overflow:hidden; display:flex; flex-direction:column; }
+    .phone-screen { flex:1; overflow-y:auto; padding:16px; position:relative; }
+    .step { display:none; }
+    .step.active { display:block; }
+    h2 { font-size:18px; margin-bottom:12px; }
+    label { display:block; margin-bottom:10px; font-size:14px; }
+    input, select, textarea { width:100%; padding:8px; margin-top:4px; border:1px solid #ccc; border-radius:4px; }
+    textarea { resize: vertical; height:80px; }
+    .btn-group { display:flex; justify-content:space-between; margin-top:16px; }
+    .btn { padding:10px 16px; border:none; border-radius:4px; font-size:14px; cursor:pointer; }
+    .btn-next { background:#28a745; color:#fff; }
+    .btn-back { background:#6c757d; color:#fff; }
+    .btn-confirm { background:#28a745; color:#fff; flex:1; margin-left:8px; }
+    .radio-group { margin-top:8px; }
+    .radio-group label { display:inline-block; margin-right:16px; }
+    .list { border:1px solid #ccc; border-radius:4px; max-height:250px; overflow-y:auto; margin-top:8px; }
+    .list-item { padding:8px; cursor:pointer; border-bottom:1px solid #eee; }
+    .list-item:hover { background:#f8f9fa; }
+    .list-item.selected { background:#e2f0d9; }
+    .progress { position:absolute; bottom:16px; left:16px; right:16px; height:6px; background:#e9ecef; border-radius:3px; overflow:hidden; }
+    .progress-bar { height:100%; width:0; background:#28a745; transition:width .3s; }
+    .progress-steps { position:absolute; bottom:26px; left:16px; right:16px; display:flex; justify-content:space-between; font-size:10px; color:#666; }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <!-- Step 1: Me fale um pouco sobre você -->
+      <div id="step-1" class="step active">
+        <h2>Me fale um pouco sobre você: </h2>
+        <label>Nome<input type="text" id="first-name" placeholder="Nome"></label>
+        <label>Sobrenome<input type="text" id="last-name" placeholder="Sobrenome"></label>
+        <label>Email<input type="email" id="email" placeholder="exemplo@dominio.com"></label>
+        <label>Telefone<input type="tel" id="phone" placeholder="(00) 00000-0000"></label>
+        <label>CPF<input type="text" id="cpf" placeholder="000.000.000-00"></label>
+        <label>Data de Nascimento<input type="date" id="dob"></label>
+        <label>Gênero<select id="gender"><option value="">Selecione</option><option value="female">Feminino</option><option value="male">Masculino</option><option value="other">Outro</option></select></label>
+        <div class="btn-group">
+          <span></span>
+          <button class="btn btn-next" onclick="nextStep(2)">Próximo</button>
+        </div>
+      </div>
+      <!-- Step 2: Onde você mora -->
+      <div id="step-2" class="step">
+        <h2>Onde você mora?</h2>
+        <label>Endereço<input type="text" id="address" placeholder="Rua, nome da via"></label>
+        <label>Número<input type="text" id="number" placeholder="Número"></label>
+        <label>Complemento<input type="text" id="complement" placeholder="Apto, bloco, etc."></label>
+        <label>Referência<input type="text" id="reference" placeholder="Perto de..."></label>
+        <label>Cidade<input type="text" id="city" placeholder="Cidade"></label>
+        <label>Estado<input type="text" id="state" placeholder="Estado"></label>
+        <label>CEP<input type="text" id="cep" placeholder="00000-000"></label>
+        <div class="btn-group">
+          <button class="btn btn-back" onclick="prevStep(1)">Voltar</button>
+          <button class="btn btn-next" onclick="nextStep(3)">Próximo</button>
+        </div>
+      </div>
+      <!-- Step 3: Atendimento -->
+      <div id="step-3" class="step">
+        <h2>Atendimento</h2>
+        <div class="radio-group">
+          <label><input type="radio" name="type" value="particular" onclick="onTypeChange()"> Particular</label>
+          <label><input type="radio" name="type" value="plano" onclick="onTypeChange()"> Plano de Saúde</label>
+        </div>
+        <div id="plan-container" style="display:none; margin-top:12px;">
+          <label>Buscar Plano<input type="text" id="plan-search" placeholder="Buscar plano" oninput="filterPlans()"></label>
+          <div class="list" id="plan-list"></div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-back" onclick="prevStep(2)">Voltar</button>
+          <button class="btn btn-next" id="type-next" onclick="nextStep(4)" disabled>Próximo</button>
+        </div>
+      </div>
+      <!-- Step 4: Médico -->
+      <div id="step-4" class="step">
+        <h2>Selecione Médico</h2>
+        <label>Buscar Médico<input type="text" id="doctor-search" placeholder="Buscar médico" oninput="filterDoctors()"></label>
+        <div class="list" id="doctor-list"></div>
+        <div class="btn-group">
+          <button class="btn btn-back" onclick="prevStep(3)">Voltar</button>
+          <button class="btn btn-next" id="doctor-next" onclick="nextStep(5)" disabled>Próximo</button>
+        </div>
+      </div>
+      <!-- Step 5: Horário -->
+      <div id="step-5" class="step">
+        <h2>Escolha Horário</h2>
+        <ul id="timeslot-list" class="list"></ul>
+        <div class="btn-group">
+          <button class="btn btn-back" onclick="prevStep(4)">Voltar</button>
+          <button class="btn btn-next" id="time-next" onclick="nextStep(6)" disabled>Próximo</button>
+        </div>
+      </div>
+      <!-- Step 6: Confirmação -->
+      <div id="step-6" class="step">
+        <h2>Confirmar</h2>
+        <p><strong>Nome:</strong> <span id="confirm-name"></span></p>
+        <p><strong>Tipo:</strong> <span id="confirm-type"></span></p>
+        <p><strong>Plano:</strong> <span id="confirm-plan"></span></p>
+        <p><strong>CPF:</strong> <span id="confirm-cpf"></span></p>
+        <p><strong>Endereço:</strong> <span id="confirm-address"></span></p>
+        <p><strong>Referência:</strong> <span id="confirm-reference"></span></p>
+        <p><strong>Horário:</strong> <span id="confirm-time"></span></p>
+        <label>Motivo da Consulta:<textarea id="confirm-notes" placeholder="Descreva o motivo..."></textarea></label>
+        <div class="btn-group">
+          <button class="btn btn-back" onclick="prevStep(5)">Voltar</button>
+          <button class="btn btn-confirm" onclick="finish()">Confirmar</button>
+        </div>
+      </div>
+      <!-- Progress -->
+      <div class="progress"><div class="progress-bar" id="progress-bar"></div></div>
+      <div class="progress-steps"><span>Cadastro</span><span>Endereço</span><span>Atendimento</span><span>Médico</span><span>Horário</span><span>Final</span></div>
+    </div>
+  </div>
+  <script>
+    const plans=['Unimed','Bradesco','CASSE'];
+    const doctors=[{name:'Dr. João Silva',specialty:'Cardiologista'},{name:'Dra. Maria Oliveira',specialty:'Endocrinologista'}];
+    const times=[];
+    for(let d=1; d<=31; d++){
+      if(d%2) times.push(`${String(d).padStart(2,'0')}/05/2025 - 09:00`);
+      if(d%3===0) times.push(`${String(d).padStart(2,'0')}/05/2025 - 19:00`);
+    }
+    let state={}, curr=1;
+    function init(){
+      // Plan list
+      plans.forEach((p,i)=>{
+        let e=document.createElement('div');
+        e.className='list-item'; e.textContent=p;
+        e.onclick=()=>selectPlan(i);
+        document.getElementById('plan-list').appendChild(e);
+      });
+      // Doctor list
+      doctors.forEach((d,i)=>{
+        let e=document.createElement('div');
+        e.className='list-item'; e.textContent=`${d.name} — ${d.specialty}`;
+        e.onclick=()=>selectDoctor(i);
+        document.getElementById('doctor-list').appendChild(e);
+      });
+      // Timeslot list with weekday
+      const ul=document.getElementById('timeslot-list');
+      const weekdays=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+      times.forEach((t,i)=>{
+        const [datePart,timePart]=t.split(' - ');
+        const [day,month,year]=datePart.split('/');
+        const dateObj=new Date(year,month-1,day);
+        const weekday=weekdays[dateObj.getDay()];
+        let li=document.createElement('li');
+        li.className='list-item';
+        li.setAttribute('data-time',`${datePart} - ${timePart}`);
+        li.innerHTML=`<span>${weekday}, ${datePart} - ${timePart}</span>`;
+        li.onclick=()=>selectTime(i);
+        ul.appendChild(li);
+      });
+      document.getElementById('cep').addEventListener('input',e=>{ e.target.value='12345-678'; });
+      updateProgress();
+    }
+    function nextStep(n){ document.getElementById('step-'+curr).classList.remove('active'); curr=n; document.getElementById('step-'+n).classList.add('active'); updateProgress(); if(n===6) showSummary(); }
+    function prevStep(n){ nextStep(n); }
+    function updateProgress(){ const pct=(curr-1)/5*100; document.getElementById('progress-bar').style.width=pct+'%'; document.querySelectorAll('.progress-steps span').forEach((el,i)=>el.style.color=(i===curr-1?'#000':'#666')); }
+    function onTypeChange(){ document.getElementById('type-next').disabled=false; state.type=event.target.value==='particular'?'Particular':'Plano'; document.getElementById('confirm-type').textContent=state.type; document.getElementById('plan-container').style.display=event.target.value==='plano'?'block':'none'; }
+    function filterPlans(){ const q=document.getElementById('plan-search').value.toLowerCase(); document.querySelectorAll('#plan-list .list-item').forEach((el,i)=>el.style.display=plans[i].toLowerCase().includes(q)?'block':'none'); }
+    function filterDoctors(){ const q=document.getElementById('doctor-search').value.toLowerCase(); document.querySelectorAll('#doctor-list .list-item').forEach((el,i)=>el.style.display=doctors[i].name.toLowerCase().includes(q)?'block':'none'); }
+    function selectPlan(i){ state.plan=plans[i]; document.querySelectorAll('#plan-list .list-item').forEach(el=>el.classList.remove('selected')); document.querySelectorAll('#plan-list .list-item')[i].classList.add('selected'); document.getElementById('type-next').disabled=false; document.getElementById('confirm-plan').textContent=state.plan; }
+    function selectDoctor(i){ state.doctor=doctors[i]; document.querySelectorAll('#doctor-list .list-item').forEach(el=>el.classList.remove('selected')); document.querySelectorAll('#doctor-list .list-item')[i].classList.add('selected'); document.getElementById('doctor-next').disabled=false; document.getElementById('confirm-doctor').textContent=state.doctor.name; }
+    function selectTime(i){ state.time=document.querySelectorAll('#timeslot-list li')[i].getAttribute('data-time'); document.querySelectorAll('#timeslot-list li').forEach(li=>li.classList.remove('selected')); document.querySelectorAll('#timeslot-list li')[i].classList.add('selected'); document.getElementById('time-next').disabled=false; document.getElementById('confirm-time').textContent=state.time; }
+    function showSummary(){ document.getElementById('confirm-name').textContent=document.getElementById('first-name').value+' '+document.getElementById('last-name').value; document.getElementById('confirm-cpf').textContent=document.getElementById('cpf').value; const ref=document.getElementById('reference')?document.getElementById('reference').value:''; document.getElementById('confirm-reference').textContent=ref; document.getElementById('confirm-address').textContent=document.getElementById('address').value+', '+document.getElementById('number').value; }
+    function finish(){ const notes=document.getElementById('confirm-notes').value; alert('Agendamento confirmado! Motivo: '+notes); }
+    init();
+  </script>
+</body>
+</html>
